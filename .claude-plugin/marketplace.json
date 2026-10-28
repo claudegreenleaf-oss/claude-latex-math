@@ -1,0 +1,13 @@
+{
+  "name": "claude-latex-math",
+  "owner": {
+    "name": "Brian Pravato"
+  },
+  "description": "Claude Code mod that draws LaTeX formulas as images in the terminal",
+  "plugins": [
+    {
+      "name": "latex-math",
+      "source": "./"
+    }
+  ]
+}

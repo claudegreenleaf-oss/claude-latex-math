@@ -1,0 +1,8 @@
+{
+  "name": "latex-math",
+  "version": "0.1.0",
+  "description": "Draws display LaTeX formulas ($$...$$ and \\[...\\]) as images in the Claude Code terminal (Ghostty, kitty, tmux with passthrough)",
+  "author": { "name": "Brian Pravato" },
+  "license": "MIT",
+  "repository": "https://github.com/kbrianps/claude-latex-math"
+}

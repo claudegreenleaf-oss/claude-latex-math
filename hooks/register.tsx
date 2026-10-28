@@ -76,7 +76,7 @@ const remember = (tex: string, formula: TFormula) => {
 }
 
 const MATH = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]/g
-const FENCE = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$))/g
+const FENCE = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]+`)/g
 
 const pushText = (segments: TSegment[], text: string) => {
   if (text.length === 0) return

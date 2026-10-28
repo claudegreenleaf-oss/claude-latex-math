@@ -59,7 +59,7 @@ test('draws the bracket form too', async ($, on) => {
 test('leaves text without display math, inline math and code to the engine', async ($, on) => {
   engine(on)
   const calls = latex(on)
-  const cases = ['Plain reply.', 'Inline $E = mc^2$ stays text.', '```\n$$ not math $$\n```']
+  const cases = ['Plain reply.', 'Inline $E = mc^2$ stays text.', '```\n$$ not math $$\n```', 'Wrap it as `$$...$$` please.']
 
   for (const text of cases) {
     const ui = await $.ui.mount(message(text))

@@ -24,6 +24,16 @@ const SCRIPT = [
   "base64 < f.png | tr -d '\\n'",
 ].join('\n')
 
+const PROMPT = `# Math in the terminal
+
+This terminal typesets display math. A formula between \`$$\` and \`$$\` (or \`\\[\` and \`\\]\`), as a paragraph of its own, is compiled with LaTeX and drawn as an image in your reply. Use it whenever a formula reads better typeset: fractions, sums, integrals, matrices, derivations, any equation worth a second look.
+
+- Inline \`$...$\` is not typeset: the person sees the raw source. Inside a sentence, write light math in plain Unicode (x², α + β ≤ 1, √2, xᵢ) and move anything heavier to its own display paragraph.
+- Each formula is compiled alone inside \`\\[...\\]\` with only amsmath and amssymb loaded. For several lines use \`aligned\`, \`gathered\` or \`cases\`, never \`align\`, \`equation\` or \`$\`. No \`\\newcommand\`, \`\\label\`, \`\\bm\` or other packages' commands; \`\\mathbb\`, \`\\mathcal\`, \`\\operatorname\`, \`\\text\`, \`\\boxed\` and the matrix environments are fine.
+- Split a long formula with \`aligned\` rather than letting it shrink to fit the terminal width.
+- Math in code spans, code blocks, tables and headings stays raw text. Keep display math out of them and out of list items: put it between paragraphs.
+- A formula LaTeX rejects is shown as its source.`
+
 const formulas = new Map<string, TFormula>()
 const pending = new Map<string, Promise<TFormula>>()
 
@@ -122,6 +132,8 @@ const boxFor = ({ width, height }: TSize, maxColumns: number) => {
 }
 
 export const register: Register = on => {
+  let hasLatex: Promise<boolean> | null = null
+
   const render = async (run: (argv: readonly string[], init: { stdin: string; timeoutMs: number }) => Promise<{ exitCode: number | null; stdout: string }>, tex: string) => {
     const cached = formulas.get(tex)
     if (cached !== undefined) return cached
@@ -149,6 +161,19 @@ export const register: Register = on => {
     remember(tex, formula)
     return formula
   }
+
+  on('prompt.compose', async ($, e, next) => {
+    const result = await next(e)
+    if (!e.surfaces.includes('terminal') || e.traits.includes('print')) return result
+
+    hasLatex ??= $.process
+      .run(['sh', '-c', 'command -v latex && command -v dvipng'], { timeoutMs: RENDER_TIMEOUT_MS })
+      .then(({ exitCode }) => exitCode === 0)
+      .catch(() => false)
+    if (!(await hasLatex)) return result
+
+    return { sections: [...result.sections, { id: 'latex-math:math', text: PROMPT, scope: 'session' as const }] }
+  })
 
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || e.props.isSummary) return next(e)

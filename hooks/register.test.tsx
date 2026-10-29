@@ -89,3 +89,41 @@ test('leaves every other surface to the engine', async ($, on) => {
   expect(calls.length).toBe(0)
   await ui.unmount()
 })
+
+const facts = (surfaces: readonly ('terminal' | 'desktop')[], traits: readonly 'print'[] = []) => ({
+  model: 'claude-opus-5-5',
+  promptModel: 'claude-opus-5-5',
+  surfaces,
+  tools: [],
+  outputStyle: null,
+  traits,
+})
+
+const compose = (on: On) =>
+  on('prompt.compose', () => ({ sections: [{ id: 'intro', text: 'engine', scope: 'shared' as const }] }))
+
+test('tells the model about display math in the terminal', async ($, on) => {
+  compose(on)
+  latex(on)
+  const { sections } = await $.prompt.compose(facts(['terminal']))
+
+  expect(sections.map(section => section.id)).toEqual(['intro', 'latex-math:math'])
+  expect(sections[1]?.text).toContain('$$')
+})
+
+test('says nothing about math without a terminal or without LaTeX', async ($, on) => {
+  compose(on)
+  latex(on)
+  const desktop = await $.prompt.compose(facts(['desktop']))
+  const print = await $.prompt.compose(facts(['terminal'], ['print']))
+  expect(desktop.sections.map(section => section.id)).toEqual(['intro'])
+  expect(print.sections.map(section => section.id)).toEqual(['intro'])
+})
+
+test('says nothing about math when latex or dvipng is missing', async ($, on) => {
+  compose(on)
+  latex(on, 1)
+  const { sections } = await $.prompt.compose(facts(['terminal']))
+
+  expect(sections.map(section => section.id)).toEqual(['intro'])
+})

@@ -191,45 +191,42 @@ export const register: Register = on => {
 
     const viewportColumns = e.viewport?.columns ?? 80
     const maxColumns = Math.max(10, viewportColumns - MARGIN)
-    const { Box, Image, Markdown } = $.ui.resolve(e)
+    const { Box, Image } = $.ui.resolve(e)
 
-    const first = segments[0]
-    const leading = first?.kind === 'text' ? first : null
-    const tail = leading ? segments.slice(1) : segments
-    const tailDrawn = leading ? drawn.slice(1) : drawn
-    const head = leading ? await next({ ...e, props: { ...e.props, text: leading.text.trimEnd() } }) : null
+    // Text, and a formula LaTeX rejected, go down the chain one piece at a
+    // time, so the engine and the plugins beneath (diagrams, links) draw it
+    // as they would a reply of its own, and never see a formula drawn here.
+    const blocks = []
+    for (const [index, segment] of segments.entries()) {
+      const formula = drawn[index] ?? null
 
-    const blocks = tail.map((segment, index) => {
-      const formula = tailDrawn[index] ?? null
-
-      if (segment.kind === 'text') {
-        const text = segment.text.trim()
-        return text ? <Markdown key={`t${index}`} text={text} /> : null
+      if (segment.kind === 'math' && formula) {
+        const box = boxFor(
+          { width: formula.size.width / SCALE, height: formula.size.height / SCALE },
+          maxColumns,
+        )
+        blocks.push(
+          <Box key={`m${index}`} marginLeft={2}>
+            <Image
+              source={{ png: formula.png }}
+              columns={box.columns}
+              rows={box.rows}
+              alt={segment.source.replace(/\s+/g, ' ')}
+            />
+          </Box>,
+        )
+        continue
       }
 
-      if (!formula) return <Markdown key={`s${index}`} text={segment.source} />
-
-      const box = boxFor(
-        { width: formula.size.width / SCALE, height: formula.size.height / SCALE },
-        maxColumns,
-      )
-      return (
-        <Image
-          key={`m${index}`}
-          source={{ png: formula.png }}
-          columns={box.columns}
-          rows={box.rows}
-          alt={segment.source.replace(/\s+/g, ' ')}
-        />
-      )
-    })
+      const text = segment.kind === 'math' ? segment.source : segment.text.trim()
+      if (!text) continue
+      const isFirstOfReply = index === 0 ? e.props.isFirstOfReply : false
+      blocks.push(<Box key={`t${index}`}>{await next({ ...e, props: { ...e.props, text, isFirstOfReply } })}</Box>)
+    }
 
     return (
       <Box flexDirection="column" gap={1}>
-        {head}
-        <Box flexDirection="column" gap={1} marginLeft={2}>
-          {blocks}
-        </Box>
+        {blocks}
       </Box>
     )
   }).catch(($, e, next) => next(e))

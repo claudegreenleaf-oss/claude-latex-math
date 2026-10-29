@@ -47,6 +47,21 @@ test('draws a display formula as an image under the leading text', async ($, on)
   await ui.unmount()
 })
 
+test('sends the text around a formula down the chain, without the formula', async ($, on) => {
+  const seen: string[] = []
+  on('ui.render', ($, e) => {
+    if (e.component === 'AssistantMessage') seen.push(e.props.text)
+    const { Text } = $.ui.resolve(e)
+    return <Text>engine</Text>
+  })
+  latex(on)
+  const ui = await $.ui.mount(message('Before.\n\n$$x^2$$\n\n```mermaid\ngraph LR\n  A --> B\n```\n\nAfter.'))
+
+  expect(await ui.find({ type: 'Image' })).toBeTruthy()
+  expect(seen).toEqual(['Before.', '```mermaid\ngraph LR\n  A --> B\n```\n\nAfter.'])
+  await ui.unmount()
+})
+
 test('draws the bracket form too', async ($, on) => {
   engine(on)
   latex(on)

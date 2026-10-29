@@ -21,7 +21,7 @@ const SCRIPT = [
   'cat > f.tex',
   'latex -interaction=nonstopmode -halt-on-error f.tex >/dev/null 2>&1',
   `dvipng -q -T tight -D ${DPI} -bg Transparent -fg '${FOREGROUND}' -o f.png f.dvi >/dev/null 2>&1`,
-  'base64 -w0 f.png',
+  "base64 < f.png | tr -d '\\n'",
 ].join('\n')
 
 const formulas = new Map<string, TFormula>()

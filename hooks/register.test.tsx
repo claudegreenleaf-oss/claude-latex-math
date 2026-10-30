@@ -142,3 +142,20 @@ test('says nothing about math when latex or dvipng is missing', async ($, on) =>
 
   expect(sections.map(section => section.id)).toEqual(['intro'])
 })
+
+test('draws formulas in the color option, and indents what follows to the reply text', { options: { color: '#adbac7' } }, async ($, on) => {
+  engine(on)
+  const scripts: string[] = []
+  on('process.run', (_$, e) => {
+    scripts.push(e.argv.join(' '))
+    return {
+      value: { exitCode: 0, stdout: TINY_PNG, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+    }
+  })
+  const ui = await $.ui.mount(message('Lead.\n\n$$x^2$$\n\nAfter.'))
+
+  expect(scripts[0]).toContain("-fg 'RGB 173 186 199'")
+  const boxes = (await ui.findAll({ type: 'Box' })).map(box => box.props.marginLeft ?? 0)
+  expect(boxes).toEqual(expect.arrayContaining([0, 2, 2]))
+  await ui.unmount()
+})
